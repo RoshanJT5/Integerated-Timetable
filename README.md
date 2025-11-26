@@ -1,4 +1,4 @@
-# NEP 2020 Timetable Generator - MVP
+# PlanSphere.AI - MVP
 
 A web-based intelligent timetable generator for NEP 2020 compliant programs (FYUP, B.Ed., M.Ed., ITEP) with role-based access control and flexible period/break configuration.
 
