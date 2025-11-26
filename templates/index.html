@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - PlanGen{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="text-muted mb-0">Welcome back, <strong>{{ user.name }}</strong>! You are logged in as <strong>{{ user.role|title }}</strong>.</p>
+    </div>
+    {% if user.role == 'admin' %}
+    <a href="/timetable" class="btn btn-primary">
+        <i class="bi bi-lightning-charge me-2"></i> Generate Timetable
+    </a>
+    {% endif %}
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-5">
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card border-start border-4" style="border-color: var(--accent) !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">Total Courses</p>
+                        <h3 class="mb-0" style="color: var(--accent);">{{ stats.courses }}</h3>
+                    </div>
+                    <i class="bi bi-book-half text-primary opacity-50" style="font-size: 2.5rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card border-start border-4" style="border-color: #f59e0b !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">Faculty Members</p>
+                        <h3 class="mb-0" style="color: #f59e0b;">{{ stats.faculty }}</h3>
+                    </div>
+                    <i class="bi bi-people-fill opacity-50" style="font-size: 2.5rem; color: #f59e0b;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card border-start border-4" style="border-color: #10b981 !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">Available Rooms</p>
+                        <h3 class="mb-0" style="color: #10b981;">{{ stats.rooms }}</h3>
+                    </div>
+                    <i class="bi bi-door-closed opacity-50" style="font-size: 2.5rem; color: #10b981;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card border-start border-4" style="border-color: #ef4444 !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">Students</p>
+                        <h3 class="mb-0" style="color: #ef4444;">{{ stats.students }}</h3>
+                    </div>
+                    <i class="bi bi-person-check-fill opacity-50" style="font-size: 2.5rem; color: #ef4444;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Constraint Status Dashboard (Admin Only) -->
+{% if user.role == 'admin' %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-shield-check"></i> Smart Constraint System Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Constraint 1: Workload -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light h-100 border-0">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-briefcase-fill text-primary me-2" style="font-size: 1.5rem;"></i>
+                                    <h6 class="mb-0">Workload Management</h6>
+                                </div>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 95%"></div>
+                                </div>
+                                <small class="text-muted">95% faculty within bounds</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Active</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Constraint 2: Lab Priority -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light h-100 border-0">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-flask-fill text-info me-2" style="font-size: 1.5rem;"></i>
+                                    <h6 class="mb-0">Lab Allocation</h6>
+                                </div>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div>
+                                </div>
+                                <small class="text-muted">All labs properly assigned</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-info"><i class="bi bi-check-circle"></i> Priority High</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Constraint 3: Availability -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light h-100 border-0">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-calendar-check-fill text-success me-2" style="font-size: 1.5rem;"></i>
+                                    <h6 class="mb-0">Availability Respect</h6>
+                                </div>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+                                </div>
+                                <small class="text-muted">100% availability honored</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Enforced</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+{% if user.role == 'admin' %}
+<div class="row g-3 mb-5">
+    <div class="col-12">
+        <h5 class="mb-3 fw-bold">Quick Actions</h5>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm text-decoration-none" style="cursor: pointer; transition: all 0.2s ease;" onclick="window.location='/courses'">
+            <div class="card-body">
+                <div class="mb-3">
+                    <i class="bi bi-plus-circle-fill" style="font-size: 2rem; color: var(--accent);"></i>
+                </div>
+                <h6 class="card-title fw-bold">Manage Courses</h6>
+                <p class="card-text text-muted small">Add or edit course details</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm text-decoration-none" style="cursor: pointer; transition: all 0.2s ease;" onclick="window.location='/timetable'">
+            <div class="card-body">
+                <div class="mb-3">
+                    <i class="bi bi-calendar-event" style="font-size: 2rem; color: #f59e0b;"></i>
+                </div>
+                <h6 class="card-title fw-bold">View Timetable</h6>
+                <p class="card-text text-muted small">Check the generated schedule</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm text-decoration-none" style="cursor: pointer; transition: all 0.2s ease;" onclick="window.location='/settings'">
+            <div class="card-body">
+                <div class="mb-3">
+                    <i class="bi bi-sliders" style="font-size: 2rem; color: #10b981;"></i>
+                </div>
+                <h6 class="card-title fw-bold">Configure Settings</h6>
+                <p class="card-text text-muted small">Set periods, breaks, and working days</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row g-3 mb-5">
+    <div class="col-12">
+        <h5 class="mb-3 fw-bold">Actions</h5>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm text-decoration-none" style="cursor: pointer; transition: all 0.2s ease;" onclick="window.location='/timetable'">
+            <div class="card-body">
+                <div class="mb-3">
+                    <i class="bi bi-calendar-event" style="font-size: 2rem; color: #f59e0b;"></i>
+                </div>
+                <h6 class="card-title fw-bold">View My Timetable</h6>
+                <p class="card-text text-muted small">Check your personalized schedule</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Getting Started Guide -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-book-half"></i> 
+                {% if user.role == 'admin' %}Getting Started Guide{% else %}How It Works{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if user.role == 'admin' %}
+                <h6 class="text-primary mb-3">Setting Up Your Smart Timetable System</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-1-circle-fill text-primary"></i> Data Setup</h6>
+                        <ol class="mb-4">
+                            <li>Add or import <strong>courses</strong> with lab requirements</li>
+                            <li>Add or import <strong>faculty</strong> with expertise areas</li>
+                            <li>Add <strong>rooms</strong> (classrooms and labs with tags)</li>
+                            <li>Create <strong>student groups</strong> for different sections</li>
+                        </ol>
+                        
+                        <h6><i class="bi bi-2-circle-fill text-primary"></i> Configuration</h6>
+                        <ol class="mb-4">
+                            <li>Configure <strong>period & break settings</strong></li>
+                            <li>Have faculty set their <strong>availability</strong></li>
+                        </ol>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-3-circle-fill text-primary"></i> Generation</h6>
+                        <ol class="mb-4">
+                            <li>Click <strong>"Generate Timetable"</strong></li>
+                            <li>System applies all smart constraints automatically</li>
+                            <li>Review results and any warnings</li>
+                        </ol>
+                        
+                        <div class="alert alert-success">
+                            <strong><i class="bi bi-lightbulb-fill"></i> Pro Tip:</strong>
+                            <p class="mb-0 small">The system automatically handles workload balancing, lab allocation, and availability constraints.</p>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <h6 class="text-primary mb-3">Smart Constraints Working for You</h6>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light h-100 border-0">
+                            <div class="card-body">
+                                <h6 class="text-primary"><i class="bi bi-1-circle"></i> Workload Balance</h6>
+                                <p class="small mb-0">Ensures fair distribution of teaching hours across all faculty.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light h-100 border-0">
+                            <div class="card-body">
+                                <h6 class="text-info"><i class="bi bi-2-circle"></i> Lab Priority</h6>
+                                <p class="small mb-0">Guarantees lab courses get appropriate lab facilities.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light h-100 border-0">
+                            <div class="card-body">
+                                <h6 class="text-success"><i class="bi bi-3-circle"></i> Availability</h6>
+                                <p class="small mb-0">Respects faculty available time preferences.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

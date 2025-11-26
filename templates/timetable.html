@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+
+{% block title %}Timetable - PlanSphere.AI{% endblock %}
+
+{% block content %}
+
+<!-- Progress Steps -->
+{% if user.role == 'admin' %}
+<style>
+    .progress-steps {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .progress-steps .step {
+        display: inline-block;
+        padding: 8px 15px;
+        margin: 0 5px;
+        border-radius: 20px;
+        background: #e9ecef;
+        color: #6c757d;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    .progress-steps .step.active {
+        background: #0d6efd;
+        color: white;
+        font-weight: bold;
+    }
+    .progress-steps .step.completed {
+        background: #28a745;
+        color: white;
+    }
+    .progress-steps .step i {
+        margin-right: 5px;
+    }
+</style>
+<div class="progress-steps text-center">
+    <span class="step"><i class="bi bi-book"></i> Courses</span>
+    <span class="step"><i class="bi bi-person-badge"></i> Faculty</span>
+    <span class="step"><i class="bi bi-building"></i> Rooms</span>
+    <span class="step"><i class="bi bi-people"></i> Students</span>
+    <span class="step"><i class="bi bi-people-fill"></i> Groups</span>
+    <span class="step"><i class="bi bi-gear"></i> Settings</span>
+    <span class="step active"><i class="bi bi-calendar-week"></i> Timetable</span>
+</div>
+{% endif %}
+
+<style>
+/* Mobile-specific timetable styles */
+@media (max-width: 768px) {
+    .timetable-card {
+        margin: -1rem;
+        border-radius: 0;
+    }
+    
+    .timetable-mobile-toggle {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    
+    .timetable-mobile-toggle .btn {
+        border-radius: 2rem;
+    }
+    
+    .timetable-table {
+        display: none;
+    }
+    
+    .timetable-mobile {
+        display: block;
+    }
+    
+    .mobile-day-card {
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+    
+    .mobile-day-header {
+        background: var(--bg-body);
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        color: var(--primary);
+    }
+    
+    .mobile-period-item {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .mobile-period-item:last-child {
+        border-bottom: none;
+    }
+    
+    .mobile-period-time {
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mobile-break-item {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        padding: 1rem;
+        text-align: center;
+        font-weight: 600;
+        color: #92400e;
+    }
+}
+
+@media (min-width: 769px) {
+    .timetable-mobile-toggle {
+        display: none;
+    }
+    
+    .timetable-table {
+        display: block;
+    }
+    
+    .timetable-mobile {
+        display: none;
+    }
+}
+
+/* Enhanced mobile touch targets */
+@media (max-width: 576px) {
+    .mobile-period-item {
+        padding: 1.25rem;
+    }
+    
+    .btn {
+        min-height: 48px;
+        font-size: 1rem;
+    }
+}
+
+/* Drag and Drop Styles */
+.draggable-entry {
+    cursor: grab;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.draggable-entry:active {
+    cursor: grabbing;
+}
+
+.draggable-entry.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+    z-index: 1000;
+}
+
+.drop-zone {
+    transition: all 0.2s ease;
+    min-height: 60px;
+}
+
+.drop-zone.drag-over {
+    background-color: rgba(79, 70, 229, 0.1);
+    border: 2px dashed var(--accent);
+    border-radius: 0.5rem;
+}
+
+.drop-zone.drag-over.empty {
+    background-color: rgba(79, 70, 229, 0.05);
+}
+
+.conflict-warning {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Timetable</h2>
+        <p class="text-muted mb-0 mt-1">View and manage the master schedule</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if user.role == 'admin' %}
+        <button class="btn btn-primary" onclick="generateTimetable()">
+            <i class="bi bi-magic me-2"></i>Generate New
+        </button>
+        <button class="btn btn-outline-secondary" id="editModeBtn" onclick="toggleEditMode()">
+            <i class="bi bi-pencil me-2"></i>Edit Mode
+        </button>
+        {% endif %}
+        {% if timetable_data %}
+        <a href="/timetable/export" class="btn btn-outline-primary">
+            <i class="bi bi-download me-2"></i>Export CSV
+        </a>
+        {% if user.role == 'admin' %}
+        <button class="btn btn-outline-danger" onclick="clearTimetable()">
+            <i class="bi bi-trash me-2"></i>Clear
+        </button>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+{% if timetable_data %}
+<div class="card border-0 shadow-sm timetable-table">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th class="bg-light text-uppercase text-muted small fw-bold py-3 px-4" style="width: 100px;">Time</th>
+                        {% for day in days %}
+                        <th class="bg-light text-uppercase text-muted small fw-bold py-3 px-4 text-center">{{ day }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for period in periods %}
+                    <tr>
+                        <td class="fw-bold text-muted align-middle text-center bg-light">
+                            <div class="small text-uppercase">Period</div>
+                            <div class="fs-4">{{ period }}</div>
+                        </td>
+                        {% for day in days %}
+                        <td class="p-2 align-top drop-zone" data-day="{{ day }}" data-period="{{ period }}" style="min-width: 200px;">
+                            {% set found_entries = [] %}
+                            {% for key, entries in timetable_data.items() %}
+                                {% if key[0] == day and key[1] == period %}
+                                    {% for entry in entries %}
+                                        {% set _ = found_entries.append(entry) %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if found_entries %}
+                                <div class="d-flex flex-column gap-2">
+                                {% for entry in found_entries %}
+                                <div class="p-3 rounded-3 border border-primary-subtle bg-primary-subtle bg-opacity-10 h-100 draggable-entry timetable-entry"
+                                     draggable="false"
+                                     data-entry-id="{{ entry.id }}"
+                                     data-course-id="{{ entry.course_id }}"
+                                     data-faculty-id="{{ entry.faculty_id }}"
+                                     data-room-id="{{ entry.room_id }}"
+                                     data-student-group="{{ entry.student_group }}"
+                                     data-time-slot-id="{{ entry.time_slot_id }}">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-primary text-white rounded-pill">{{ entry.course.code }}</span>
+                                        {% if entry.student_group %}
+                                        <span class="badge bg-white text-primary border border-primary-subtle rounded-pill">{{ entry.student_group }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="fw-bold text-primary mb-1">{{ entry.course.name }}</div>
+                                    <div class="d-flex flex-column gap-1 small text-muted">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person me-2 text-primary opacity-75"></i>
+                                            {{ entry.faculty.name }}
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-geo-alt me-2 text-primary opacity-75"></i>
+                                            {{ entry.room.name }}
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-clock me-2 text-primary opacity-75"></i>
+                                            {{ entry.slot.start_time }} - {{ entry.slot.end_time }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4 text-muted opacity-25 drop-zone empty" data-day="{{ day }}" data-period="{{ period }}">
+                                    <i class="bi bi-dash-lg fs-4"></i>
+                                </div>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% if period in break_map %}
+                    <tr>
+                        <td class="fw-bold text-muted align-middle text-center bg-warning-subtle border-warning-subtle">
+                            <i class="bi bi-cup-hot fs-5 text-warning"></i>
+                        </td>
+                        <td colspan="{{ days|length }}" class="bg-warning-subtle border-warning-subtle p-3">
+                            <div class="d-flex align-items-center justify-content-center text-warning-emphasis">
+                                <span class="fw-bold me-2">{{ break_map[period].break_name }}</span>
+                                <span class="badge bg-warning text-white rounded-pill">{{ break_map[period].duration_minutes }} min</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Card View -->
+<div class="timetable-mobile d-none d-md-none">
+    {% for day in days %}
+    <div class="mobile-day-card">
+        <div class="mobile-day-header">
+            <i class="bi bi-calendar-day me-2"></i>{{ day }}
+        </div>
+        {% for period in periods %}
+        <div class="mobile-period-item">
+            {% set found_entries = [] %}
+            {% for key, entries in timetable_data.items() %}
+                {% if key[0] == day and key[1] == period %}
+                    {% for entry in entries %}
+                        {% set _ = found_entries.append(entry) %}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+            
+            <div class="mobile-period-time">
+                Period {{ period }} • {{ found_entries[0].slot.start_time if found_entries else 'N/A' }} - {{ found_entries[0].slot.end_time if found_entries else 'N/A' }}
+            </div>
+            
+            {% if found_entries %}
+                <div class="d-flex flex-column gap-3">
+                {% for entry in found_entries %}
+                <div class="p-3 rounded-3 border border-primary-subtle bg-primary-subtle bg-opacity-10 draggable-entry timetable-entry"
+                     draggable="false"
+                     data-entry-id="{{ entry.id }}"
+                     data-course-id="{{ entry.course_id }}"
+                     data-faculty-id="{{ entry.faculty_id }}"
+                     data-room-id="{{ entry.room_id }}"
+                     data-student-group="{{ entry.student_group }}"
+                     data-time-slot-id="{{ entry.time_slot_id }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-primary text-white rounded-pill">{{ entry.course.code }}</span>
+                        {% if entry.student_group %}
+                        <span class="badge bg-white text-primary border border-primary-subtle rounded-pill">{{ entry.student_group }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="fw-bold text-primary mb-2">{{ entry.course.name }}</div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="d-flex align-items-center small text-muted">
+                                <i class="bi bi-person me-2 text-primary opacity-75"></i>
+                                <span class="text-truncate">{{ entry.faculty.name }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center small text-muted">
+                                <i class="bi bi-geo-alt me-2 text-primary opacity-75"></i>
+                                <span class="text-truncate">{{ entry.room.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-3 text-muted opacity-50 drop-zone empty" data-day="{{ day }}" data-period="{{ period }}">
+                    <i class="bi bi-dash-lg fs-5"></i>
+                    <div class="small mt-1">No class scheduled</div>
+                </div>
+            {% endif %}
+        </div>
+        
+        {% if period in break_map %}
+        <div class="mobile-break-item">
+            <i class="bi bi-cup-hot me-2"></i>
+            {{ break_map[period].break_name }} ({{ break_map[period].duration_minutes }} min)
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <div class="mb-4">
+        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+            <i class="bi bi-calendar-x text-muted fs-1"></i>
+        </div>
+    </div>
+    <h4 class="fw-bold text-muted">No Timetable Generated Yet</h4>
+    <p class="text-muted mb-4">Generate a timetable to see the schedule here.</p>
+    {% if user.role == 'admin' %}
+    <button class="btn btn-primary px-4 py-2" onclick="generateTimetable()">
+        <i class="bi bi-magic me-2"></i>Generate Now
+    </button>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body text-center p-5">
+                <div class="spinner-border text-primary mb-4" role="status" style="width: 3rem; height: 3rem;"></div>
+                <h5 class="fw-bold mb-2">Generating Timetable</h5>
+                <p class="text-muted mb-0">Please wait while we optimize the schedule...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let isEditMode = false;
+
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+    const editBtn = document.getElementById('editModeBtn');
+    const entries = document.querySelectorAll('.timetable-entry');
+    
+    if (isEditMode) {
+        editBtn.classList.remove('btn-outline-secondary');
+        editBtn.classList.add('btn-warning');
+        editBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Save Changes';
+        entries.forEach(entry => entry.setAttribute('draggable', 'true'));
+    } else {
+        editBtn.classList.remove('btn-warning');
+        editBtn.classList.add('btn-outline-secondary');
+        editBtn.innerHTML = '<i class="bi bi-pencil me-2"></i>Edit Mode';
+        entries.forEach(entry => entry.setAttribute('draggable', 'false'));
+    }
+}
+
+function generateTimetable() {
+    if (!confirm('This will generate a new timetable. Existing timetable will be cleared. Continue?')) {
+        return;
+    }
+    
+    var modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    modal.show();
+    
+    fetch('/timetable/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        modal.hide();
+        if (data.success) {
+            let message = data.message;
+            if (data.warnings && data.warnings.length > 0) {
+                message += '\n\nWarnings:\n' + data.warnings.join('\n');
+            }
+            alert(message);
+            location.reload();
+        } else {
+            alert('Error: ' + (data.message || 'Failed to generate timetable'));
+        }
+    })
+    .catch(err => {
+        modal.hide();
+        alert('Error: ' + err.message);
+    });
+}
+
+function clearTimetable() {
+    if (!confirm('Are you sure you want to clear the timetable?')) return;
+    
+    fetch('/timetable/clear', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error clearing timetable');
+        }
+    });
+}
+</script>
+{% endblock %}
